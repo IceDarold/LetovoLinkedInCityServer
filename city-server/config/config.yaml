@@ -1,0 +1,15 @@
+server:
+  address: "localhost:8080"
+
+database:
+  dsn: "host=localhost port=5432 user=postgres dbname=city_server password=1234 sslmode=disable"
+
+assets:
+  storage_path: "./data/assets"
+
+auth:
+  hmac_secret: "${HMAC_SECRET}"
+
+notification:
+  telegram_bot_token: "${TELEGRAM_BOT_TOKEN}"
+  telegram_chat_id: -1001234567890  # ID группы, куда бот отправляет сообщения
