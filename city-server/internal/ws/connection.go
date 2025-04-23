@@ -55,7 +55,7 @@ func (c *Client) ReadPump() {
 		}
 
 		switch msg.Type {
-		case "join":
+		case "player_joined":
 			var join protocol.JoinMessage
 			if err := json.Unmarshal(msg.Data, &join); err != nil {
 				log.Println("[SERVER] ❌ Failed to parse join:", err)
@@ -97,7 +97,7 @@ func (c *Client) ReadPump() {
 				}
 			}
 
-		case "move":
+		case "player_move":
 			var move protocol.MoveMessage
 			if err := json.Unmarshal(msg.Data, &move); err != nil {
 				log.Println("[SERVER] ❌ Failed to parse move message:", err)

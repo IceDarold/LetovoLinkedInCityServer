@@ -36,8 +36,13 @@ func init() {
 		log.Fatalf("Не удалось подключиться к БД: %s", err)
 	}
 
-	// мигрируем модели
-	if err := db.AutoMigrate(&store.World{}, &store.User{}, &store.Asset{}, &store.Version{}); err != nil {
+	if err := db.AutoMigrate(
+		&store.World{},
+		&store.User{},
+		&store.Asset{},
+		&store.Version{},
+		&store.AuthToken{},
+	); err != nil {
 		log.Fatalf("Ошибка миграции БД: %s", err)
 	}
 
@@ -48,7 +53,7 @@ func main() {
 	// Инициализация сервисов
 	worldService := services.NewWorldService(db)
 	assetService := services.NewAssetService(db)
-	authService := services.NewAuthService()
+	authService := services.NewAuthService(db)
 	notificationService := services.NewNotificationService()
 
 	// Инициализация WebSocket-хаба
@@ -60,6 +65,7 @@ func main() {
 
 	// 💬 WebSocket маршрут без middleware
 	r.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("⚡ New WS request")
 		ws.ServeWS(wsHub, w, r)
 	})
 
@@ -79,7 +85,7 @@ func main() {
 	apiRouter.HandleFunc("/world/{worldId}/delta/{platform}/{lastKnownSnapshotHash}", apiHandler.GetWorldDelta).Methods(http.MethodGet)
 	apiRouter.HandleFunc("/assets/{assetBundleHash}", apiHandler.GetAssetBundle).Methods(http.MethodGet)
 	apiRouter.HandleFunc("/assets/upload/{worldId}/{platform}/{assetBundleHash}", apiHandler.UploadAssetBundle).Methods(http.MethodPost)
-	apiRouter.HandleFunc("/auth/validate-signature/{platform}", apiHandler.ValidateSignature).Methods(http.MethodPost)
+	r.HandleFunc("/auth/validate-token", apiHandler.ValidateToken).Methods(http.MethodPost)
 
 	// HTTP-сервер
 	server := &http.Server{

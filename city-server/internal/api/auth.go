@@ -1,32 +1,35 @@
 package api
 
 import (
-	"encoding/json"
+	"log"
 	"net/http"
 )
 
-// Проверка подписи данных
-func (h *Handler) ValidateSignature(w http.ResponseWriter, r *http.Request) {
-	var requestData struct {
-		Signature string `json:"signature"`
-		Payload   string `json:"payload"`
-	}
+func (h *Handler) ValidateToken(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
 
-	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-		writeErrorResponse(w, http.StatusBadRequest, "Ошибка декодирования запроса")
+	if authHeader == "" {
+		writeErrorResponse(w, http.StatusUnauthorized, "Нет заголовка Authorization")
 		return
 	}
 
-	valid, err := h.authService.ValidateSignature(requestData.Signature, requestData.Payload)
-	if err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Ошибка валидации подписи")
+	const prefix = "Bearer "
+	if len(authHeader) <= len(prefix) || authHeader[:len(prefix)] != prefix {
+		writeErrorResponse(w, http.StatusUnauthorized, "Неверный формат Authorization")
 		return
 	}
 
+	token := authHeader[len(prefix):]
+	log.Printf("🔐 Incoming token: %s", token)
+
+	playerId, valid := h.authService.ValidateToken(token)
 	if !valid {
-		writeErrorResponse(w, http.StatusUnauthorized, "Неверная подпись")
+		writeErrorResponse(w, http.StatusUnauthorized, "Неверный токен")
 		return
 	}
 
-	writeJSONResponse(w, http.StatusOK, map[string]string{"status": "valid"})
+	writeJSONResponse(w, http.StatusOK, map[string]interface{}{
+		"valid":    true,
+		"playerId": playerId,
+	})
 }

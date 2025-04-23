@@ -27,6 +27,10 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	for {
 		select {
+		case client := <-h.Register:
+			log.Println("[HUB] ✅ Registered client")
+			h.Clients[client] = true
+
 		case client := <-h.Unregister:
 			log.Printf("[SERVER] 🔌 Player %s disconnected", client.PlayerID)
 

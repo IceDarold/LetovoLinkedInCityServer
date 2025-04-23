@@ -14,20 +14,25 @@ var upgrader = websocket.Upgrader{
 }
 
 func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	log.Println("🔗 Attempting to upgrade to WebSocket...")
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Failed to upgrade to WebSocket:", err)
+		log.Println("❌ Failed to upgrade:", err)
 		return
 	}
+
+	log.Println("✅ WebSocket upgraded")
 
 	client := &Client{
 		Conn: conn,
 		Send: make(chan []byte, 256),
 		Hub:  hub,
 	}
+	log.Println("🌀 Client registration")
 
 	hub.Register <- client
-
+	log.Println("🌀 Starting ReadPump and WritePump")
 	go client.WritePump()
 	go client.ReadPump()
 }
