@@ -6,84 +6,93 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/spf13/viper"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"city-server/internal/api"
 	"city-server/internal/middleware"
 	"city-server/internal/services"
 	"city-server/internal/store"
+	"city-server/internal/ws"
 )
 
 var db *gorm.DB
 var err error
 
 func init() {
-	// Загружаем конфигурацию из файла config.yaml
+	// читаем конфиг
 	viper.SetConfigName("config")
 	viper.AddConfigPath("./config")
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Fatalf("Ошибка чтения конфигурации: %s", err)
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("Ошибка чтения конфига: %s", err)
 	}
 
-	// Подключаемся к базе данных Postgres
-	db, err = gorm.Open("postgres", viper.GetString("database.dsn"))
+	// открываем GORM v2
+	dsn := viper.GetString("database.dsn")
+	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Ошибка подключения к базе данных: %s", err)
+		log.Fatalf("Не удалось подключиться к БД: %s", err)
 	}
 
-	// Автоматически мигрируем структуру базы данных
-	err = db.AutoMigrate(&store.World{}, &store.User{}, &store.Asset{}, &store.Version{}).Error
-	if err != nil {
-		log.Fatalf("Ошибка миграции базы данных: %s", err)
+	// мигрируем модели
+	if err := db.AutoMigrate(&store.World{}, &store.User{}, &store.Asset{}, &store.Version{}); err != nil {
+		log.Fatalf("Ошибка миграции БД: %s", err)
 	}
 
-	// Логируем успешное подключение
-	log.Println("Подключение к базе данных PostgreSQL установлено успешно")
+	log.Println("✅ Подключение к PostgreSQL успешно")
 }
 
 func main() {
-
 	// Инициализация сервисов
 	worldService := services.NewWorldService(db)
 	assetService := services.NewAssetService(db)
 	authService := services.NewAuthService()
 	notificationService := services.NewNotificationService()
 
-	// Настроим маршруты
-	r := mux.NewRouter()
-	// передаём notificationService в мидлварь
-	r.Use(middleware.ErrorMiddleware(notificationService))
+	// Инициализация WebSocket-хаба
+	wsHub := ws.NewHub()
+	go wsHub.Run()
 
-	// Инициализация обработчиков
+	// Главный роутер
+	r := mux.NewRouter()
+
+	// 💬 WebSocket маршрут без middleware
+	r.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		ws.ServeWS(wsHub, w, r)
+	})
+
+	// 📦 Подроутер для API с middleware
+	apiRouter := r.PathPrefix("/").Subrouter()
+	apiRouter.Use(middleware.LoggingMiddleware)
+	apiRouter.Use(middleware.ErrorMiddleware(notificationService))
+	token := viper.GetString("auth.api_token")
+	apiRouter.Use(middleware.AuthMiddleware(token))
+
+	// Инициализация API обработчиков
 	apiHandler := api.NewHandler(worldService, assetService, authService)
 
-	// Настроим middleware
-	r.Use(middleware.LoggingMiddleware)
-	r.Use(middleware.ErrorMiddleware)
-
 	// API маршруты
-	r.HandleFunc("/world/{worldId}/state/{platform}", apiHandler.GetWorldState).Methods(http.MethodGet)
-	r.HandleFunc("/world/{worldId}/state/{platform}", apiHandler.SaveWorldState).Methods(http.MethodPost)
-	r.HandleFunc("/world/{worldId}/delta/{platform}/{lastKnownSnapshotHash}", apiHandler.GetWorldDelta).Methods(http.MethodGet)
-	r.HandleFunc("/assets/{assetBundleHash}", apiHandler.GetAssetBundle).Methods(http.MethodGet)
-	r.HandleFunc("/assets/upload/{worldId}/{platform}/{assetBundleHash}", apiHandler.UploadAssetBundle).Methods(http.MethodPost)
-	r.HandleFunc("/auth/validate-signature/{platform}", apiHandler.ValidateSignature).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/world/{worldId}/state/{platform}", apiHandler.GetWorldState).Methods(http.MethodGet)
+	apiRouter.HandleFunc("/world/{worldId}/state/{platform}", apiHandler.SaveWorldState).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/world/{worldId}/delta/{platform}/{lastKnownSnapshotHash}", apiHandler.GetWorldDelta).Methods(http.MethodGet)
+	apiRouter.HandleFunc("/assets/{assetBundleHash}", apiHandler.GetAssetBundle).Methods(http.MethodGet)
+	apiRouter.HandleFunc("/assets/upload/{worldId}/{platform}/{assetBundleHash}", apiHandler.UploadAssetBundle).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/auth/validate-signature/{platform}", apiHandler.ValidateSignature).Methods(http.MethodPost)
 
-	// Стартуем HTTP сервер
+	// HTTP-сервер
 	server := &http.Server{
 		Addr:           viper.GetString("server.address"),
 		Handler:        r,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20, // 1MB
+		MaxHeaderBytes: 1 << 20,
 	}
 
-	log.Printf("Запуск сервера на %s...\n", viper.GetString("server.address"))
+	log.Printf("🚀 Запуск сервера на %s...\n", viper.GetString("server.address"))
 	err := server.ListenAndServe()
 	if err != nil {
-		log.Fatalf("Ошибка запуска сервера: %s", err)
+		log.Fatalf("❌ Ошибка запуска сервера: %s", err)
 	}
 }
