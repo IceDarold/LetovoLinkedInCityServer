@@ -6,26 +6,23 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
-
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
 
-type Vec3 struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	Z float64 `json:"z"`
+type InputMessage struct {
+	PlayerID   string  `json:"playerId"`
+	Horizontal float64 `json:"horizontal"`
+	Vertical   float64 `json:"vertical"`
+	Jump       bool    `json:"jump"`
+	Sprint     bool    `json:"sprint"`
+	Dance      bool    `json:"dance"`
 }
 
 type JoinMessage struct {
 	PlayerID string `json:"playerId"`
-}
-
-type MoveMessage struct {
-	PlayerID string `json:"playerId"`
-	Position Vec3   `json:"position"`
 }
 
 type Message struct {
@@ -45,7 +42,6 @@ func sendJSON(conn *websocket.Conn, msgType string, data any) {
 }
 
 func main() {
-	// Connect
 	playerID := "test-client-1"
 	url := "ws://localhost:8080/ws"
 
@@ -61,7 +57,7 @@ func main() {
 	join := JoinMessage{PlayerID: playerID}
 	sendJSON(conn, "player_joined", join)
 
-	// Goroutine to listen for messages
+	// Read messages
 	go func() {
 		for {
 			_, msg, err := conn.ReadMessage()
@@ -73,31 +69,37 @@ func main() {
 		}
 	}()
 
-	// Input loop
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Print("Command (move x y z / exit): ")
+		fmt.Print("Command (input h v [jump] [sprint] [dance] / exit): ")
 		text, _ := reader.ReadString('\n')
 		text = strings.TrimSpace(text)
 
-		if strings.HasPrefix(text, "move") {
+		if strings.HasPrefix(text, "input") {
 			parts := strings.Split(text, " ")
-			if len(parts) != 4 {
-				fmt.Println("Usage: move x y z")
+			if len(parts) < 3 {
+				fmt.Println("Usage: input horizontal vertical [jump] [sprint] [dance]")
 				continue
 			}
 
-			x := parseFloat(parts[1])
-			y := parseFloat(parts[2])
-			z := parseFloat(parts[3])
+			h := parseFloat(parts[1])
+			v := parseFloat(parts[2])
+			jump := parseBoolSafe(parts, 3)
+			sprint := parseBoolSafe(parts, 4)
+			dance := parseBoolSafe(parts, 5)
 
-			move := MoveMessage{
-				PlayerID: playerID,
-				Position: Vec3{X: x, Y: y, Z: z},
+			input := InputMessage{
+				PlayerID:   playerID,
+				Horizontal: h,
+				Vertical:   v,
+				Jump:       jump,
+				Sprint:     sprint,
+				Dance:      dance,
 			}
 
-			sendJSON(conn, "player_moved", move)
+			sendJSON(conn, "player_input", input)
+
 		} else if text == "exit" {
 			break
 		} else {
@@ -113,4 +115,11 @@ func parseFloat(s string) float64 {
 		return 0
 	}
 	return v
+}
+
+func parseBoolSafe(parts []string, index int) bool {
+	if len(parts) > index {
+		return parts[index] == "true" || parts[index] == "1"
+	}
+	return false
 }

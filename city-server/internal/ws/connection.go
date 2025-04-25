@@ -74,7 +74,7 @@ func (c *Client) ReadPump() {
 				if id == join.PlayerID {
 					continue
 				}
-				list = append(list, protocol.JoinMessage{PlayerID: id})
+				list = append(list, protocol.JoinMessage{PlayerID: id, Position: protocol.Vec3{X: 0, Y: 0, Z: 0}})
 			}
 			snapshot := protocol.Message{
 				Type: "world_snapshot",
@@ -121,6 +121,32 @@ func (c *Client) ReadPump() {
 
 			log.Printf("[SERVER] 📢 Broadcasting move of %s to all clients", move.PlayerID)
 			c.Hub.Broadcast <- respBytes
+
+		case "player_input":
+			var input protocol.InputMessage
+			if err := json.Unmarshal(msg.Data, &input); err != nil {
+				log.Println("[SERVER] ❌ Failed to decode player_input:", err)
+				break
+			}
+
+			// (опционально) сохраняем последний input
+			// c.Hub.LastInputs[input.PlayerID] = input
+
+			// Рассылаем другим
+			if input.PlayerID != c.PlayerID {
+				log.Printf("[SERVER] 🕹️ Input from %s ignored — mismatched PlayerID", input.PlayerID)
+				break
+			}
+
+			for client := range c.Hub.Clients {
+				if client != c {
+					out := protocol.Message{
+						Type: "player_input",
+						Data: utils.MustMarshal(input),
+					}
+					client.Send <- utils.MustMarshal(out)
+				}
+			}
 
 		default:
 			log.Printf("[SERVER] ⚠️ Unknown message type: %s", msg.Type)
