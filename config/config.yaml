@@ -2,7 +2,8 @@ server:
   address: "localhost:8082"
 
 database:
-  dsn: "host=db user=postgres dbname=city_server password=code1234 sslmode=disable"
+  dsn: "host=localhost user=city_user password=code1234 dbname=city_server port=5432 sslmode=disable"
+
 
 assets:
   storage_path: "./data/assets"
