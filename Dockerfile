@@ -13,7 +13,7 @@ RUN go mod download
 COPY . .
 
 # 4. Сборка бинарника
-RUN go build -o cityserver ./cmd/cityserver
+RUN go build -o cityserver ./cmd/
 
 # Финальный минимальный образ
 FROM debian:bullseye-slim
