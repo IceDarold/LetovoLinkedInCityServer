@@ -4,6 +4,8 @@ services:
   server:
     build: .
     network_mode: "host"
+    ports:
+      8082:8080
     volumes:
       - ./config:/app/config
     environment:
