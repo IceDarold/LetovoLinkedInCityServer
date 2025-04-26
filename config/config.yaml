@@ -1,5 +1,5 @@
 server:
-  address: "localhost:8082"
+  address: "0.0.0.0:8082"
 
 database:
   dsn: "host=localhost user=city_user password=code1234 dbname=city_server port=5432 sslmode=disable"
