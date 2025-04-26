@@ -1,27 +1,28 @@
-# Используем официальный Go-образ
-FROM golang:1.21 AS builder
+# Стадия сборки
+FROM golang:1.24 AS builder
 
 WORKDIR /app
 
-# Копируем исходники
+# 1. Копируем только файлы зависимостей
 COPY go.mod go.sum ./
+
+# 2. Скачиваем зависимости
 RUN go mod download
 
+# 3. Теперь копируем весь код проекта
 COPY . .
 
-# Собираем сервер
+# 4. Сборка бинарника
 RUN go build -o cityserver ./cmd/cityserver
 
-# Финальный образ
+# Финальный минимальный образ
 FROM debian:bullseye-slim
 
 WORKDIR /app
 
-# Копируем бинарник и конфиг
 COPY --from=builder /app/cityserver .
 COPY config ./config
 
-# Указываем порт (если нужно)
 EXPOSE 8080
 
 CMD ["./cityserver"]
