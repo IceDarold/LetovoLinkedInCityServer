@@ -2,7 +2,7 @@ server:
   address: "localhost:8080"
 
 database:
-  dsn: "host=localhost port=5432 user=postgres dbname=city_server password=code1234 sslmode=disable"
+  dsn: "host=host.docker.internal user=postgres dbname=city_server password=code1234 sslmode=disable"
 
 assets:
   storage_path: "./data/assets"
