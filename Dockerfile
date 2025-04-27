@@ -22,6 +22,7 @@ WORKDIR /app
 
 COPY --from=builder /app/cityserver .
 COPY config ./config
+COPY static ./static
 
 EXPOSE 8080
 
