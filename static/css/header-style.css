@@ -1,0 +1,73 @@
+header {
+    background-color: #4CAF50;
+    padding: 20px;
+    text-align: center;
+    color: white;
+    position: relative;
+    opacity: 0;
+    transform: translateY(-20px);
+    animation: fadeInHeader 1s ease-out forwards;
+    transition: background-color 0.5s, color 0.5s;
+}
+header h1 { color: #ffffff; }
+
+@keyframes fadeInHeader {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+main {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInMain 1s ease-out forwards;
+    animation-delay: 0.5s; /* задержка старта после шапки */
+}   
+
+nav a {
+    margin: 0 15px;
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    transition: color 0.5s;
+}
+
+#playerCount {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    font-size: 16px;
+    font-weight: normal;
+}   
+/* Ключевые кадры для header */
+@keyframes fadeInHeader {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Ключевые кадры для main */
+@keyframes fadeInMain {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+a.button {
+    display: inline-block;
+    padding: 15px 30px;
+    font-size: 20px;
+    background-color: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.3s, transform 0.3s; /* плавность цвета и масштаба */
+}
+
+a.button:hover {
+    background-color: #45a049;
+    transform: scale(1.05); /* лёгкое увеличение */
+}

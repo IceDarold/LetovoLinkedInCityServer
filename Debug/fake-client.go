@@ -43,7 +43,7 @@ func sendJSON(conn *websocket.Conn, msgType string, data any) {
 
 func main() {
 	playerID := "test-client-1"
-	url := "ws://localhost:8080/ws"
+	url := "ws://localhost:8082/ws"
 
 	fmt.Printf("Connecting to %s as %s...\n", url, playerID)
 

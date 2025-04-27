@@ -43,23 +43,24 @@ func init() {
 		&store.Version{},
 		&store.AuthToken{},
 	); err != nil {
-		log.Fatalf("Ошибка миграции БД: %s", err)
+		log.Printf("Ошибка миграции БД: %s", err)
 	}
 
 	log.Println("✅ Подключение к PostgreSQL успешно")
 }
 
 func main() {
-	// Инициализация сервисов
-	worldService := services.NewWorldService(db)
-	assetService := services.NewAssetService(db)
-	authService := services.NewAuthService(db)
-	notificationService := services.NewNotificationService()
 
 	// Инициализация WebSocket-хаба
 	wsHub := ws.NewHub()
 	go wsHub.Run()
 
+	// Инициализация сервисов
+	worldService := services.NewWorldService(db)
+	assetService := services.NewAssetService(db)
+	authService := services.NewAuthService(db)
+	notificationService := services.NewNotificationService()
+	statsService := services.NewStatsService(wsHub)
 	// Главный роутер
 	r := mux.NewRouter()
 
@@ -77,7 +78,7 @@ func main() {
 	apiRouter.Use(middleware.AuthMiddleware(token))
 
 	// Инициализация API обработчиков
-	apiHandler := api.NewHandler(worldService, assetService, authService)
+	apiHandler := api.NewHandler(worldService, assetService, authService, statsService)
 
 	// API маршруты
 	apiRouter.HandleFunc("/world/{worldId}/state/{platform}", apiHandler.GetWorldState).Methods(http.MethodGet)
@@ -86,6 +87,17 @@ func main() {
 	apiRouter.HandleFunc("/assets/{assetBundleHash}", apiHandler.GetAssetBundle).Methods(http.MethodGet)
 	apiRouter.HandleFunc("/assets/upload/{worldId}/{platform}/{assetBundleHash}", apiHandler.UploadAssetBundle).Methods(http.MethodPost)
 	r.HandleFunc("/auth/validate-token", apiHandler.ValidateToken).Methods(http.MethodPost)
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/html/index.html")
+	})
+	r.HandleFunc("/api/status", apiHandler.GetServerStatus).Methods(http.MethodGet)
+	r.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./static/html/status.html")
+	})
+	r.HandleFunc("/play", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./static/html/download.html")
+	})
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 
 	// HTTP-сервер
 	server := &http.Server{

@@ -12,14 +12,16 @@ type Handler struct {
 	worldService *services.WorldService
 	assetService *services.AssetService
 	authService  *services.AuthService
+	statsService *services.StatsService
 }
 
 // Новый обработчик
-func NewHandler(ws *services.WorldService, as *services.AssetService, auth *services.AuthService) *Handler {
+func NewHandler(ws *services.WorldService, as *services.AssetService, auth *services.AuthService, stats *services.StatsService) *Handler {
 	return &Handler{
 		worldService: ws,
 		assetService: as,
 		authService:  auth,
+		statsService: stats,
 	}
 }
 

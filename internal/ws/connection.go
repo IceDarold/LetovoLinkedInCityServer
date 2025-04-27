@@ -64,18 +64,20 @@ func (c *Client) ReadPump() {
 
 			log.Printf("[SERVER] ✅ Player %s joined", join.PlayerID)
 			// 1) Добавляем игрока в состояние
-			c.PlayerID = join.PlayerID
-			c.Hub.Players[join.PlayerID] = protocol.Vec3{X: 0, Y: 0, Z: 0}
+			if join.PlayerID != "SERVER" {
+				c.PlayerID = join.PlayerID
+				c.Hub.Players[join.PlayerID] = protocol.Vec3{X: 0, Y: 0, Z: 0}
+			}
 
 			// 2) Отправляем этому клиенту snapshot всех игроков
 			var list []protocol.JoinMessage
 			for id := range c.Hub.Players {
-				// не включаем себя, если не нужно
-				if id == join.PlayerID {
+				if id == join.PlayerID || id == "SERVER" {
 					continue
 				}
 				list = append(list, protocol.JoinMessage{PlayerID: id, Position: protocol.Vec3{X: 0, Y: 0, Z: 0}})
 			}
+
 			snapshot := protocol.Message{
 				Type: "world_snapshot",
 				Data: utils.MustMarshal(protocol.WorldSnapshot{Players: list}),
@@ -92,7 +94,7 @@ func (c *Client) ReadPump() {
 			}
 			b := utils.MustMarshal(joined)
 			for client := range c.Hub.Clients {
-				if client != c {
+				if client != c && client.PlayerID != "SERVER" {
 					client.Send <- b
 				}
 			}
@@ -133,7 +135,7 @@ func (c *Client) ReadPump() {
 			// c.Hub.LastInputs[input.PlayerID] = input
 
 			// Рассылаем другим
-			if input.PlayerID != c.PlayerID {
+			if c.PlayerID != "SERVER" && input.PlayerID != c.PlayerID {
 				log.Printf("[SERVER] 🕹️ Input from %s ignored — mismatched PlayerID", input.PlayerID)
 				break
 			}
