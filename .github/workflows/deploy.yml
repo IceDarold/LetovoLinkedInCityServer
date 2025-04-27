@@ -22,5 +22,6 @@ jobs:
           script: |
             cd /opt/city-server || mkdir -p /opt/city-server && cd /opt/city-server
             if [ -d .git ]; then git pull; else git clone https://github.com/IceDarold/LetovoLinkedInCityServer.git .; fi
+            docker system prune -a
             docker-compose down || true
             docker-compose up --build -d
