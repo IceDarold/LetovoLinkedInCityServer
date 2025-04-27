@@ -7,6 +7,6 @@ services:
     volumes:
       - ./config:/app/config
     environment:
-      - TZ=UTC
-      - TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
-      - TELEGRAM_CHAT_IDS: "${TELEGRAM_CHAT_IDS}"
+      TZ: UTC
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
+      TELEGRAM_CHAT_IDS: "${TELEGRAM_CHAT_IDS}"
