@@ -73,6 +73,10 @@ func main() {
 	authService := services.NewAuthService(db)
 	notificationService := services.NewNotificationService()
 	statsService := services.NewStatsService(wsHub)
+	// Затем создаём MultiLogger
+	multiLogger := services.NewMultiLogger(notificationService)
+	// Переназначаем стандартный логгер Go
+	log.SetOutput(multiLogger)
 	// Главный роутер
 	r := mux.NewRouter()
 

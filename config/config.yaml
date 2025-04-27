@@ -16,4 +16,4 @@ auth:
 
 notification:
   telegram_bot_token: "${TELEGRAM_BOT_TOKEN}"
-  telegram_chat_id: -1001234567890  # ID группы, куда бот отправляет сообщения
+  telegram_chat_id: ${TELEGRAM_CHAT_IDS}
