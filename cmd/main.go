@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -47,11 +45,6 @@ func init() {
 	); err != nil {
 		log.Printf("Ошибка миграции БД: %s", err)
 	}
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Рабочая папка сервера:", dir)
 	log.Println("✅ Подключение к PostgreSQL успешно")
 }
 
