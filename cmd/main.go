@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 
 var db *gorm.DB
 var err error
+var latestFile string
 
 func init() {
 	// читаем конфиг
@@ -36,6 +38,10 @@ func init() {
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Не удалось подключиться к БД: %s", err)
+	}
+	latestFile = viper.GetString("download.latest_file")
+	if latestFile == "" {
+		log.Printf("Не найдено имя файла последней версии в конфиге!")
 	}
 
 	if err := db.AutoMigrate(
@@ -105,6 +111,16 @@ func main() {
 		http.ServeFile(w, r, "./static/html/download.html")
 	})
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
+	r.HandleFunc("/api/latest-version", func(w http.ResponseWriter, r *http.Request) {
+		versionInfo := struct {
+			FileName string `json:"fileName"`
+		}{
+			FileName: latestFile,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(versionInfo)
+	})
 
 	// HTTP-сервер
 	server := &http.Server{

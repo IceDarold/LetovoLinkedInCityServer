@@ -4,6 +4,8 @@ server:
 database:
   dsn: "host=localhost user=city_user password=code1234 dbname=city_server port=5432 sslmode=disable"
 
+download:
+  latest_file: "city-server-0.0.2.zip"
 
 assets:
   storage_path: "./data/assets"
